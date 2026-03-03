@@ -250,6 +250,132 @@ go mod tidy
 
 ---
 
+## Запуск на VPS (Production)
+
+### 1. Подготовка сервера
+
+```bash
+# Обновление системы
+sudo apt update && sudo apt upgrade -y
+
+# Установка Go (если не установлен)
+wget https://go.dev/dl/go1.21.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.21.linux-amd64.tar.gz
+echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### 2. Загрузка проекта
+
+```bash
+# Клонирование репозитория
+git clone https://github.com/galimov-i/WebMessenger.git
+cd WebMessenger/Server
+
+# Или через scp с локального компьютера
+# scp -r ./Server user@vps:/opt/WebMessenger/
+```
+
+### 3. Сборка сервера
+
+```bash
+cd Server
+go mod tidy
+go build -o messenger .
+```
+
+### 4. Запуск сервера
+
+```bash
+# Запуск в фоне
+./messenger -port 8080 -db ./messenger.db -static ../Client &
+
+# Или с проверкой
+curl http://localhost:8080
+```
+
+### 5. Настройка systemd (рекомендуется)
+
+```bash
+sudo nano /etc/systemd/system/messenger.service
+```
+
+Содержимое:
+```ini
+[Unit]
+Description=WebMessenger Server
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/WebMessenger/Server
+ExecStart=/opt/WebMessenger/Server/messenger -port 8080 -db ./messenger.db -static ../Client
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable messenger
+sudo systemctl start messenger
+
+# Проверка статуса
+sudo systemctl status messenger
+```
+
+### 6. Настройка nginx (для домена)
+
+```bash
+sudo apt install nginx
+
+sudo nano /etc/nginx/sites-available/messenger
+```
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+```bash
+sudo ln -s /etc/nginx/sites-available/messenger /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### 7. Открытие порта в firewall
+
+```bash
+# Ubuntu (ufw)
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+
+# Если без nginx, также:
+sudo ufw allow 8080/tcp
+```
+
+### 8. Подключение
+
+Откройте в браузере:
+- **Без домена:** `http://IP_VPS:8080`
+- **С доменом:** `http://your-domain.com`
+
+---
+
 ## Лицензия
 
 MIT License
