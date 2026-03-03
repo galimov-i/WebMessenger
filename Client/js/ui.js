@@ -1,0 +1,351 @@
+/**
+ * UIModule - управление DOM и UI
+ */
+var WebMessenger = window.WebMessenger || {};
+if (!window.WebMessenger) {
+    window.WebMessenger = WebMessenger;
+}
+console.log('WebMessenger.UI loading...');
+
+WebMessenger.UI = (() => {
+    // Элементы
+    let authScreen, mainScreen, loginForm, registerForm, authTabs, authError;
+    let usersList, chatContainer, chatPlaceholder, messagesContainer, messageInput, chatWithUser;
+    let currentUser, currentChatUser;
+    
+    /**
+     * Инициализация UI элементов
+     */
+    function init() {
+        console.log('UI.init() started');
+        authScreen = document.getElementById('auth-screen');
+        mainScreen = document.getElementById('main-screen');
+        loginForm = document.getElementById('login-form');
+        registerForm = document.getElementById('register-form');
+        authTabs = document.querySelectorAll('.auth-tab');
+        authError = document.getElementById('auth-error');
+        usersList = document.getElementById('users-list');
+        chatContainer = document.getElementById('chat-container');
+        chatPlaceholder = document.getElementById('chat-placeholder');
+        messagesContainer = document.getElementById('messages');
+        messageInput = document.getElementById('message-input');
+        chatWithUser = document.getElementById('chat-with-user');
+        currentUser = document.getElementById('current-user');
+        
+        // Настройка обработчиков
+        setupAuthTabs();
+        setupMessageForm();
+    }
+    
+    /**
+     * Настройка переключения табов авторизации
+     */
+    function setupAuthTabs() {
+        console.log('setupAuthTabs, authTabs:', authTabs.length);
+        authTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                
+                // Обновление активного класса
+                authTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Показ/скрытие форм
+                if (tabName === 'login') {
+                    loginForm.classList.remove('hidden');
+                    registerForm.classList.add('hidden');
+                } else {
+                    loginForm.classList.add('hidden');
+                    registerForm.classList.remove('hidden');
+                }
+                
+                hideError();
+            });
+        });
+    }
+    
+    /**
+     * Настройка формы отправки сообщения
+     */
+    function setupMessageForm() {
+        const form = document.getElementById('message-form');
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const message = messageInput.value.trim();
+                if (!message || !currentChatUser) return;
+                
+                // Очистка инпута
+                messageInput.value = '';
+                
+                // Отправка через app
+                if (window.WebMessenger && window.WebMessenger.App && window.WebMessenger.App.sendMessage) {
+                    await window.WebMessenger.App.sendMessage(currentChatUser.id, message);
+                }
+            });
+        }
+    }
+    
+    /**
+     * Показ экрана авторизации
+     */
+    function showAuthScreen() {
+        authScreen.classList.remove('hidden');
+        mainScreen.classList.add('hidden');
+    }
+    
+    /**
+     * Показ главного экрана
+     */
+    function showMainScreen() {
+        authScreen.classList.add('hidden');
+        mainScreen.classList.remove('hidden');
+    }
+    
+    /**
+     * Установка имени текущего пользователя
+     */
+    function setCurrentUser(username) {
+        currentUser.textContent = username;
+    }
+    
+    /**
+     * Показ ошибки авторизации
+     */
+    function showError(message) {
+        authError.textContent = message;
+        authError.classList.remove('hidden');
+    }
+    
+    /**
+     * Скрытие ошибки авторизации
+     */
+    function hideError() {
+        authError.classList.add('hidden');
+    }
+    
+    let allUsers = []; // Храним всех пользователей для поиска
+    
+    /**
+     * Рендер списка пользователей
+     */
+    function renderUsersList(users, onlineUsers = []) {
+        allUsers = users || [];
+        usersList.innerHTML = '';
+        
+        if (!users || users.length === 0) {
+            usersList.innerHTML = '<p class="users-list-empty">Нет пользователей</p>';
+            return;
+        }
+        
+        renderFilteredUsers(users, onlineUsers);
+        
+        // Настройка поиска
+        setupSearch();
+    }
+    
+    /**
+     * Рендер отфильтрованных пользователей
+     */
+    function renderFilteredUsers(users, onlineUsers = []) {
+        usersList.innerHTML = '';
+        
+        if (users.length === 0) {
+            usersList.innerHTML = '<p class="users-list-empty">Пользователи не найдены</p>';
+            return;
+        }
+        
+        users.forEach(user => {
+            const isOnline = onlineUsers.includes(user.id);
+            const item = document.createElement('div');
+            item.className = 'user-item';
+            item.dataset.userId = user.id;
+            item.dataset.username = user.username.toLowerCase();
+            
+            const initial = user.username.charAt(0).toUpperCase();
+            
+            item.innerHTML = `
+                <div class="user-avatar">${initial}</div>
+                <div class="user-info">
+                    <div class="user-name">${escapeHtml(user.username)}</div>
+                </div>
+                <div class="user-status-indicator ${isOnline ? 'online' : ''}"></div>
+            `;
+            
+            item.addEventListener('click', () => {
+                selectUser(user);
+            });
+            
+            usersList.appendChild(item);
+        });
+    }
+    
+    /**
+     * Настройка поиска пользователей
+     */
+    function setupSearch() {
+        const searchInput = document.getElementById('user-search');
+        if (!searchInput) return;
+        
+        // Очищаем старые обработчики
+        const newSearchInput = searchInput.cloneNode(true);
+        searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+        
+        newSearchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            
+            if (query === '') {
+                renderFilteredUsers(allUsers, window.WebMessenger?.App?.onlineUsers || []);
+                return;
+            }
+            
+            const filtered = allUsers.filter(user => 
+                user.username.toLowerCase().includes(query)
+            );
+            
+            renderFilteredUsers(filtered, window.WebMessenger?.App?.onlineUsers || []);
+        });
+    }
+    
+    /**
+     * Выбор пользователя для чата
+     */
+    async function selectUser(user) {
+        currentChatUser = user;
+        
+        // Обновление UI
+        document.querySelectorAll('.user-item').forEach(item => {
+            item.classList.remove('active');
+            if (parseInt(item.dataset.userId) === user.id) {
+                item.classList.add('active');
+            }
+        });
+        
+        // Показ контейнера чата
+        chatPlaceholder.classList.add('hidden');
+        chatContainer.classList.remove('hidden');
+        
+        // Заголовок
+        chatWithUser.textContent = user.username;
+        
+        // Загрузка сообщений
+        if (window.WebMessenger && window.WebMessenger.App && window.WebMessenger.App.loadMessages) {
+            await window.WebMessenger.App.loadMessages(currentChatUser.id);
+        }
+    }
+    
+    /**
+     * Рендер сообщений
+     */
+    async function renderMessages(messages, currentUserId, currentUserPrivateKey) {
+        messagesContainer.innerHTML = '';
+        
+        if (!messages || messages.length === 0) {
+            messagesContainer.innerHTML = '<p style="text-align: center; color: var(--text-muted);">Нет сообщений</p>';
+            return;
+        }
+        
+        // Получаем закрытый ключ
+        const privateKey = localStorage.getItem('privateKey');
+        
+        for (const msg of messages) {
+            const isSent = msg.sender_id === currentUserId;
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${isSent ? 'sent' : 'received'}`;
+            
+            let content = msg.encrypted_content;
+            
+            // Пробуем расшифровать любое сообщение (включая свои)
+            if (privateKey) {
+                try {
+                    content = await WebMessenger.Crypto.decrypt(msg.encrypted_content, privateKey);
+                } catch (e) {
+                    console.error('Failed to decrypt message:', e);
+                    content = '[Не удалось расшифровать]';
+                }
+            }
+            
+            const time = new Date(msg.timestamp).toLocaleTimeString('ru-RU', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            messageEl.innerHTML = `
+                ${escapeHtml(content)}
+                <div class="message-time">${time}</div>
+            `;
+            
+            messagesContainer.appendChild(messageEl);
+        }
+        
+        // Прокрутка вниз
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    
+    /**
+     * Добавление нового сообщения
+     */
+    function addMessage(message, isSent) {
+        const messageEl = document.createElement('div');
+        messageEl.className = `message ${isSent ? 'sent' : 'received'}`;
+        
+        const time = new Date(message.timestamp || Date.now()).toLocaleTimeString('ru-RU', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        messageEl.innerHTML = `
+            ${escapeHtml(message.content || message.encrypted_content)}
+            <div class="message-time">${time}</div>
+        `;
+        
+        messagesContainer.appendChild(messageEl);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    
+    /**
+     * Экранирование HTML
+     */
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    /**
+     * Очистка чата
+     */
+    function clearChat() {
+        messagesContainer.innerHTML = '';
+        chatContainer.classList.add('hidden');
+        chatPlaceholder.classList.remove('hidden');
+        currentChatUser = null;
+    }
+    
+    /**
+     * Обновление статуса пользователя
+     */
+    function updateUserStatus(isOnline) {
+        const statusEl = document.getElementById('user-status');
+        if (statusEl) {
+            statusEl.textContent = isOnline ? 'онлайн' : 'оффлайн';
+            statusEl.className = `user-status ${isOnline ? 'online' : 'offline'}`;
+        }
+    }
+    
+    return {
+        init,
+        showAuthScreen,
+        showMainScreen,
+        setCurrentUser,
+        showError,
+        hideError,
+        renderUsersList,
+        selectUser,
+        renderMessages,
+        addMessage,
+        clearChat,
+        updateUserStatus
+    };
+})();
+

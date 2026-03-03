@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebMessenger</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Экран входа/регистрации -->
+        <div id="auth-screen" class="screen">
+            <div class="auth-container">
+                <h1 class="app-title">WebMessenger</h1>
+                <div class="auth-tabs">
+                    <button class="auth-tab active" data-tab="login" onclick="console.log('Login tab clicked')">Вход</button>
+                    <button class="auth-tab" data-tab="register" onclick="console.log('Register tab clicked')">Регистрация</button>
+                </div>
+                
+                <!-- Форма входа -->
+                <form id="login-form" class="auth-form">
+                    <div class="form-group">
+                        <label for="login-username">Имя пользователя</label>
+                        <input type="text" id="login-username" name="username" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Пароль</label>
+                        <input type="password" id="login-password" name="password" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Войти</button>
+                </form>
+                
+                <!-- Форма регистрации -->
+                <form id="register-form" class="auth-form hidden">
+                    <div class="form-group">
+                        <label for="register-username">Имя пользователя</label>
+                        <input type="text" id="register-username" name="username" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Пароль</label>
+                        <input type="password" id="register-password" name="password" required autocomplete="new-password">
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password-confirm">Подтверждение пароля</label>
+                        <input type="password" id="register-password-confirm" name="password_confirm" required autocomplete="new-password">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Зарегистрироваться</button>
+                </form>
+                
+                <div id="auth-error" class="error-message hidden"></div>
+            </div>
+        </div>
+        
+        <!-- Основной экран -->
+        <div id="main-screen" class="screen hidden">
+            <header class="app-header">
+                <h2 class="header-title">WebMessenger</h2>
+                <div class="header-actions">
+                    <div class="current-user-info">
+                        <span class="current-user-label">Вы:</span>
+                        <span id="current-user" class="current-user-name"></span>
+                    </div>
+                    <button id="logout-btn" class="btn btn-small">Выйти</button>
+                </div>
+            </header>
+            
+            <div class="main-layout">
+                <!-- Список пользователей -->
+                <aside class="users-sidebar">
+                    <h3 class="sidebar-title">Контакты</h3>
+                    <div class="search-box">
+                        <input type="text" id="user-search" placeholder="Поиск пользователя..." autocomplete="off">
+                    </div>
+                    <div id="users-list" class="users-list">
+                        <!-- Список пользователей будет загружен динамически -->
+                    </div>
+                </aside>
+                    
+                <!-- Область чата -->
+                <main class="chat-area">
+                    <div id="chat-placeholder" class="chat-placeholder">
+                        <p>Выберите пользователя для начала общения</p>
+                    </div>
+                    
+                    <div id="chat-container" class="chat-container hidden">
+                        <div class="chat-header">
+                            <h3 id="chat-with-user"></h3>
+                            <span id="user-status" class="user-status offline">оффлайн</span>
+                        </div>
+                        
+                        <div id="messages" class="messages">
+                            <!-- Сообщения будут загружены динамически -->
+                        </div>
+                        
+                        <form id="message-form" class="message-form">
+                            <input type="text" id="message-input" placeholder="Введите сообщение..." autocomplete="off">
+                            <button type="submit" class="btn btn-primary">Отправить</button>
+                        </form>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/crypto.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

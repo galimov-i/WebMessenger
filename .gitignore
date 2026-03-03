@@ -1,0 +1,40 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+**/messenger
+**/messenger.exe
+**/*.exe
+
+# Go build
+/bin/
+/build/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+
+# Temp
+tmp/
+temp/
