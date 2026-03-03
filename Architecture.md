@@ -6,12 +6,12 @@
 
 ## 1. Обзор
 
-Легковесный мессенджер с минимальными зависимостями. Сервер на Go + SQLite, клиент — браузерный SPA на чистом JS/CSS/HTML. Асимметричное шифрование RSA-OAEP защищает сообщения, bcrypt хэширует пароли.
+Легковесный мессенджер с end-to-end шифрованием. Сервер на Go + SQLite, клиент — браузерный SPA на чистом JS/CSS/HTML. Асимметричное шифрование RSA-OAEP 2048 бит защищает сообщения.
 
 **Ключевые принципы:**
+- End-to-end шифрование (ключи генерируются на клиенте)
+- Сервер не видит содержимое сообщений
 - Минимум внешних зависимостей
-- Стандартные библиотеки Go
-- Web Crypto API в браузере
 - SQLite как встроенная БД
 
 ---
@@ -19,7 +19,7 @@
 ## 2. Структура проекта
 
 ```
-project/
+WebMessenger/
 ├── Server/                      # Серверная часть (Go)
 │   ├── main.go                  # Точка входа
 │   ├── handlers/                # HTTP-обработчики
@@ -28,21 +28,28 @@ project/
 │   │   └── websocket.go         # Real-time
 │   ├── models/                  # Структуры данных
 │   │   └── user.go
-│   ├── crypto/                  # Шифрование
+│   ├── crypto/                  # Шифрование (серверное)
 │   │   └── rsa.go
 │   ├── db/                      # База данных
 │   │   └── sqlite.go
+│   ├── go.mod                   # Зависимости Go
 │   └── messenger.db             # Файл SQLite
 │
-└── Client/                      # Браузерный клиент
-    ├── index.html               # Главная страница
-    ├── css/
-    │   └── style.css            # Стили
-    └── js/
-        ├── app.js               # Главный модуль
-        ├── crypto.js            # Web Crypto wrapper
-        ├── api.js               # HTTP клиент
-        └── ui.js                # DOM управление
+├── Client/                      # Браузерный клиент
+│   ├── index.html               # Главная страница
+│   ├── css/
+│   │   └── style.css            # Стили
+│   └── js/
+│       ├── app.js               # Главный модуль
+│       ├── crypto.js            # Web Crypto API
+│       ├── api.js               # HTTP клиент
+│       └── ui.js                # DOM управление
+│
+├── server.sh                    # Скрипт запуска сервера
+├── client.sh                    # Скрипт запуска клиента
+├── .gitignore
+├── README.md
+└── Architecture.md
 ```
 
 ---
@@ -54,24 +61,23 @@ project/
 | Компонент | Библиотека | Назначение |
 |-----------|------------|------------|
 | HTTP Server | `net/http` | REST API + статика |
-| WebSocket | `golang.org/x/net/websocket` | Real-time сообщения |
-| Database | `database/sql` + `github.com/mattn/go-sqlite3` | SQLite драйвер |
-| Crypto | `crypto/rsa`, `crypto/bcrypt` | Шифрование + хэш |
+| WebSocket | `github.com/gorilla/websocket` | Real-time сообщения |
+| Database | `github.com/mattn/go-sqlite3` | SQLite драйвер |
+| Crypto | `golang.org/x/crypto/bcrypt` | Хэширование паролей |
 
 ### 3.2 Схема базы данных
 
 ```sql
--- Пользователи
+-- Пользователи (public_key - PEM формат)
 CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    public_key BLOB,
-    private_key BLOB,
+    public_key TEXT,              -- PEM формат открытого ключа
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Сообщения
+-- Сообщения (зашифрованный контент)
 CREATE TABLE messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     sender_id INTEGER NOT NULL,
@@ -82,9 +88,9 @@ CREATE TABLE messages (
     FOREIGN KEY (recipient_id) REFERENCES users(id)
 );
 
--- Сессии
+-- Сессии (токены)
 CREATE TABLE sessions (
-    id TEXT PRIMARY KEY,
+    token TEXT PRIMARY KEY,
     user_id INTEGER NOT NULL,
     expires_at DATETIME NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id)
@@ -97,56 +103,43 @@ CREATE TABLE sessions (
 
 ### 4.1 Модули JavaScript
 
-**app.js** — главная точка входа:
-```javascript
-// Инициализация приложения
-document.addEventListener('DOMContentLoaded', async () => {
-    await CryptoModule.init();
-    await APIModule.checkSession();
-    UIModule.renderLogin();
-});
+```
+Client/js/
+├── app.js      # Инициализация, WebSocket, отправка сообщений
+├── api.js      # HTTP клиент (fetch)
+├── crypto.js   # Web Crypto API (RSA-OAEP, генерация ключей)
+└── ui.js       # DOM манипуляции
 ```
 
-**crypto.js** — обёртка Web Crypto API:
-```javascript
-const CryptoModule = {
-    // Шифрование сообщения открытым ключом
-    async encrypt(message, publicKeyPem) {
-        const publicKey = await this.importPublicKey(publicKeyPem);
-        const encoded = new TextEncoder().encode(message);
-        return await crypto.subtle.encrypt(
-            { name: "RSA-OAEP" },
-            publicKey,
-            encoded
-        );
-    },
-    
-    // Импорт открытого ключа из PEM
-    async importPublicKey(pem) {
-        const binary = atob(pem.replace(/-----BEGIN.*-----/g, '').replace(/\s/g, ''));
-        const buffer = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) buffer[i] = binary.charCodeAt(i);
-        return await crypto.subtle.importKey(
-            'spki', buffer, { name: "RSA-OAEP", hash: "SHA-256" }, false, ['encrypt']
-        );
-    }
-};
-```
+### 4.2 Ключевые функции crypto.js
 
-**api.js** — HTTP клиент:
 ```javascript
-const APIModule = {
-    async login(username, password) {
-        const response = await fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-        const data = await response.json();
-        if (data.token) sessionStorage.setItem('token', data.token);
-        return data;
-    }
-};
+// Генерация ключевой пары RSA-OAEP 2048
+async function generateKeyPair() {
+    return await crypto.subtle.generateKey(
+        { name: "RSA-OAEP", modulusLength: 2048, hash: "SHA-256" },
+        true, ["encrypt", "decrypt"]
+    );
+}
+
+// Шифрование сообщения
+async function encrypt(message, publicKeyPEM) {
+    const publicKey = await importPublicKey(publicKeyPEM);
+    const encoded = new TextEncoder().encode(message);
+    const encrypted = await crypto.subtle.encrypt(
+        { name: "RSA-OAEP" }, publicKey, encoded
+    );
+    return arrayBufferToBase64(encrypted);
+}
+
+// Расшифровка сообщения
+async function decrypt(encryptedBase64, privateKeyPEM) {
+    const privateKey = await importPrivateKey(privateKeyPEM);
+    const decrypted = await crypto.subtle.decrypt(
+        { name: "RSA-OAEP" }, privateKey, base64ToArrayBuffer(encryptedBase64)
+    );
+    return new TextDecoder().decode(decrypted);
+}
 ```
 
 ---
@@ -155,7 +148,7 @@ const APIModule = {
 
 ### 5.1 Алгоритм
 
-**RSA-OAEP 2048 бит** — асимметричное шифрование с оптимальным дополнением.
+**RSA-OAEP 2048 бит + SHA-256** — асимметричное шифрование с оптимальным дополнением.
 
 ### 5.2 Распределение ключей
 
@@ -163,64 +156,68 @@ const APIModule = {
 ┌─────────────┐                    ┌─────────────┐
 │   Сервер    │                    │   Клиент    │
 ├─────────────┤                    ├─────────────┤
-│ private_key │◄─── хранится тут   │             │
-│ public_key  │─── передаётся ───► │ public_key  │
+│ public_key  │◄─── отправляет ────│ public_key  │
+│   (PEM)     │                    │   (PEM)     │
+│             │                    │ private_key │◄── генерируется
+│             │                    │   (PEM)     │    локально
 └─────────────┘                    └─────────────┘
 ```
 
-### 5.3 Процесс шифрования
+### 5.3 Процесс (end-to-end)
 
-1. **Регистрация:** сервер генерирует пару RSA-ключей
-2. **Клиент:** получает открытый ключ, сохраняет в `localStorage`
-3. **Отправка:** клиент шифрует сообщение открытым ключом
-4. **Передача:** шифротекст идёт на сервер через HTTPS/WebSocket
-5. **Расшифровка:** сервер расшифровывает закрытым ключом
+```
+1. Регистрация: клиент генерирует RSA ключи
+2. Публичный ключ отправляется на сервер
+3. Закрытый ключ сохраняется в localStorage браузера
+4. Отправка: клиент шифрует открытым ключом ПОЛУЧАТЕЛЯ
+5. Сервер получает зашифрованное сообщение, сохраняет
+6. Получатель расшифровывает своим закрытым ключом
+```
 
 ---
 
 ## 6. Аутентификация
 
-### 6.1 Регистрация
+### 6.1 Регистрация (клиент генерирует ключи)
 
 ```
 Клиент                              Сервер
   │                                   │
+  │  generate RSA keypair             │
+  │  (Web Crypto API)                 │
+  │                                   │
   │ POST /api/register                │
-  │ {username, password}              │
+  │ {username, password, public_key}  │
   │──────────────────────────────────►│
   │                                   │ hash = bcrypt(password, cost=12)
-  │                                   │ generate RSA keypair
-  │                                   │ store user in DB
+  │                                   │ store user + public_key in DB
   │                                   │
-  │ {token, public_key}               │
+  │ {token, public_key, user}         │
+  │◄──────────────────────────────────│
+  │                                   │
+  │ save private_key to localStorage  │
+```
+
+### 6.2 Вход
+
+```
+Клиент                              Сервер
+  │                                   │
+  │ POST /api/login                   │
+  │ {username, password}              │
+  │──────────────────────────────────►│
+  │                                   │ verify password with bcrypt
+  │                                   │ generate session token
+  │                                   │
+  │ {token, public_key, user}         │
   │◄──────────────────────────────────│
 ```
 
-### 6.2 Хранение паролей
+### 6.3 WebSocket подключение
 
-```go
-// Go: хэширование пароля
-func hashPassword(password string) (string, error) {
-    bytes, err := bcrypt.GenerateFromPassword([]byte(password), 12)
-    return string(bytes), err
-}
-
-// Проверка пароля
-func checkPassword(password, hash string) bool {
-    err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-    return err == nil
-}
+Токен передаётся через query-параметр:
 ```
-
-### 6.3 Сессионный токен
-
-```go
-// Генерация токена
-func generateToken() string {
-    b := make([]byte, 32)
-    rand.Read(b)
-    return base64.URLEncoding.EncodeToString(b)
-}
+ws://localhost:8080/ws?token=<session_token>
 ```
 
 ---
@@ -229,22 +226,23 @@ func generateToken() string {
 
 | Метод | Endpoint | Описание | Auth |
 |-------|----------|----------|------|
-| POST | `/api/register` | Регистрация пользователя | Нет |
+| POST | `/api/register` | Регистрация + отправка public_key | Нет |
 | POST | `/api/login` | Аутентификация | Нет |
 | POST | `/api/logout` | Завершение сессии | Да |
-| GET | `/api/messages` | Список сообщений | Да |
-| POST | `/api/messages` | Отправить сообщение | Да |
+| GET | `/api/me` | Текущий пользователь | Да |
+| GET | `/api/users` | Список пользователей | Да |
 | GET | `/api/keys/:userId` | Открытый ключ пользователя | Да |
-| GET | `/api/users` | Список контактов | Да |
-| WS | `/ws` | WebSocket соединение | Да |
+| GET | `/api/messages?with=:id` | Сообщения с пользователем | Да |
+| POST | `/api/messages` | Отправить сообщение | Да |
+| WS | `/ws?token=:token` | WebSocket соединение | Да |
 
-### Примеры запросов
+### Примеры
 
 **Регистрация:**
 ```bash
 curl -X POST http://localhost:8080/api/register \
   -H "Content-Type: application/json" \
-  -d '{"username": "user1", "password": "secret123"}'
+  -d '{"username": "user1", "password": "secret123", "public_key": "-----BEGIN PUBLIC KEY-----\n..."}'
 ```
 
 **Отправка сообщения:**
@@ -264,14 +262,14 @@ curl -X POST http://localhost:8080/api/messages \
 | Параметр | Значение |
 |----------|----------|
 | Go | 1.21+ |
-| RAM | 128 MB минимум |
+| RAM | 128 MB |
 | Storage | 100 MB для БД |
 | OS | Linux / macOS / Windows |
 
-### Клиент (браузер)
+### Клиент
 
-| Браузер | Мин. версия |
-|---------|-------------|
+| Браузер | Версия |
+|---------|--------|
 | Chrome | 60+ |
 | Firefox | 55+ |
 | Safari | 11+ |
@@ -287,49 +285,26 @@ curl -X POST http://localhost:8080/api/messages \
 
 ## 9. Развёртывание
 
-### Сборка сервера
+### Сборка и запуск
 
 ```bash
+# Сервер
 cd Server
-go mod init messenger
 go mod tidy
-go build -o messenger-server
+go build -o messenger.exe .
+./messenger.exe -port 8080 -db ./messenger.db -static ../Client
+
+# Клиент открыть в браузере
+http://localhost:8080
 ```
 
-### Запуск
+### Параметры сервера
 
-```bash
-./messenger-server \
-  --port=8080 \
-  --db=./messenger.db \
-  --static=../Client
-```
-
-### Переменные окружения
-
-| Переменная | По умолчанию | Описание |
-|------------|--------------|----------|
-| `PORT` | `8080` | Порт сервера |
-| `DB_PATH` | `./messenger.db` | Путь к БД |
-| `STATIC_DIR` | `./Client` | Директория клиента |
-
-### systemd сервис
-
-```ini
-[Unit]
-Description=Messenger Server
-After=network.target
-
-[Service]
-Type=simple
-User=messenger
-WorkingDirectory=/opt/messenger
-ExecStart=/opt/messenger/messenger-server
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
+| Параметр | По умолчанию | Описание |
+|----------|--------------|----------|
+| `-port` | 8080 | Порт сервера |
+| `-db` | ./messenger.db | Путь к БД |
+| `-static` | ../Client | Директория статики |
 
 ---
 
@@ -342,16 +317,19 @@ WantedBy=multi-user.target
     ▼                                         │
 ┌───────────┐                           ┌─────┴─────┐
 │  Browser  │                           │  Browser  │
-│  (Client) │                           │  (Client) │
+│  (User A) │                           │  (User B) │
 └─────┬─────┘                           └─────┬─────┘
       │                                       │
-      │  1. Login/Register                    │
+      │  1. Register + send public_key        │
       │─────────────────────────────────────► │
       │                                       │
-      │  2. Get Public Key                    │
+      │  2. Get public_key of recipient       │
       │─────────────────────────────────────► │
       │                                       │
-      │  3. Encrypt + Send Message            │
+      │  3. Encrypt with recipient's key      │
+      │─────────────────────────────────────► │
+      │                                       │
+      │  4. WebSocket / API                   │
       │─────────────────────────────────────► │
       │                                       │
       ▼                                       ▼
@@ -359,8 +337,8 @@ WantedBy=multi-user.target
 │                    SERVER (Go)                       │
 ├─────────────────────────────────────────────────────┤
 │  ┌─────────┐  ┌──────────┐  ┌─────────────────────┐ │
-│  │ HTTP    │  │ WebSocket│  │ Crypto Module       │ │
-│  │ Handler │  │ Handler  │  │ (RSA-OAEP, bcrypt)  │ │
+│  │ HTTP    │  │WebSocket │  │ Auth (bcrypt)       │ │
+│  │ Handler │  │ Handler  │  │                     │ │
 │  └────┬────┘  └────┬─────┘  └──────────┬──────────┘ │
 │       │            │                   │            │
 │       └────────────┴───────────────────┘            │
@@ -368,12 +346,13 @@ WantedBy=multi-user.target
 │                    ▼                                │
 │           ┌───────────────┐                         │
 │           │    SQLite     │                         │
-│           │ (messenger.db)│                         │
+│           │ (users, msgs, │                         │
+│           │   sessions)   │                         │
 │           └───────────────┘                         │
 └─────────────────────────────────────────────────────┘
 ```
 
 ---
 
-**Документ создан:** 2026-03-02  
-**Версия:** 1.0
+**Документ обновлён:** 2026-03-03  
+**Версия:** 2.0
