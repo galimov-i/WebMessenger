@@ -35,6 +35,88 @@ WebMessenger.UI = (() => {
         // Настройка обработчиков
         setupAuthTabs();
         setupMessageForm();
+        setupMobileNav();
+    }
+    
+    /**
+     * Настройка мобильной навигации
+     */
+    function setupMobileNav() {
+        const usersSidebar = document.querySelector('.users-sidebar');
+        const backToUsersBtn = document.getElementById('back-to-users-btn');
+        const showUsersBtn = document.getElementById('show-users-btn');
+        
+        if (!usersSidebar) return;
+        
+        // Кнопка "назад к списку" в шапке
+        if (backToUsersBtn) {
+            backToUsersBtn.addEventListener('click', () => {
+                usersSidebar.classList.add('open');
+                chatContainer.classList.remove('active');
+            });
+        }
+        
+        // Кнопка "показать пользователей" в чате
+        if (showUsersBtn) {
+            showUsersBtn.addEventListener('click', () => {
+                usersSidebar.classList.add('open');
+                chatContainer.classList.remove('active');
+            });
+        }
+        
+        // Закрытие списка при клике вне его (для мобильных)
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth > 768) return;
+            
+            if (usersSidebar.classList.contains('open') && 
+                !usersSidebar.contains(e.target) &&
+                !e.target.closest('#show-users-btn') &&
+                !e.target.closest('#back-to-users-btn')) {
+                usersSidebar.classList.remove('open');
+            }
+        });
+        
+        // Сброс состояния при ресайзе окна
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                if (window.innerWidth > 768) {
+                    usersSidebar.classList.remove('open');
+                    chatContainer.classList.add('active');
+                }
+            }, 150);
+        });
+        
+        // Поддержка swipe для мобильных
+        let touchStartX = 0;
+        let touchEndX = 0;
+        
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        
+        document.addEventListener('touchend', (e) => {
+            if (window.innerWidth > 768) return;
+            
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, { passive: true });
+        
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            const diff = touchStartX - touchEndX;
+            
+            // Свайп вправо - показать список пользователей
+            if (diff < -swipeThreshold && currentChatUser) {
+                usersSidebar.classList.add('open');
+            }
+            
+            // Свайп влево - показать чат (если выбран пользователь)
+            if (diff > swipeThreshold && currentChatUser) {
+                usersSidebar.classList.remove('open');
+            }
+        }
     }
     
     /**
@@ -221,9 +303,20 @@ WebMessenger.UI = (() => {
             }
         });
         
+        // Закрываем сайдбар на мобильных
+        const usersSidebar = document.querySelector('.users-sidebar');
+        if (usersSidebar && window.innerWidth <= 768) {
+            usersSidebar.classList.remove('open');
+        }
+        
         // Показ контейнера чата
         chatPlaceholder.classList.add('hidden');
         chatContainer.classList.remove('hidden');
+        
+        // Для мобильных - добавляем класс active для корректного отображения
+        if (window.innerWidth <= 768) {
+            chatContainer.classList.add('active');
+        }
         
         // Заголовок
         chatWithUser.textContent = user.username;

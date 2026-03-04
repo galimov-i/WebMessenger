@@ -464,13 +464,17 @@ html, body {
 
 /* Адаптивность для мобильных */
 @media (max-width: 768px) {
+    .main-layout {
+        position: relative;
+    }
+    
     .users-sidebar {
         position: absolute;
         left: 0;
-        top: 57px;
+        top: 0;
         bottom: 0;
         width: 100%;
-        z-index: 10;
+        z-index: 100;
         transform: translateX(-100%);
         transition: transform 0.3s ease;
     }
@@ -481,10 +485,228 @@ html, body {
     
     .chat-container {
         width: 100%;
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        background: var(--bg-color);
+    }
+    
+    .chat-container.active {
+        display: flex !important;
     }
     
     .message {
         max-width: 85%;
+    }
+    
+    /* Кнопки для мобильной навигации */
+    .mobile-only {
+        display: flex !important;
+    }
+    
+    .btn-icon {
+        background: transparent;
+        border: none;
+        color: var(--text-color);
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: var(--radius-small);
+        transition: var(--transition);
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn-icon:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .btn-icon svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .chat-header {
+        padding: 0.75rem 1rem;
+    }
+    
+    .chat-header .btn-icon {
+        margin-right: 0.5rem;
+    }
+    
+    .chat-header h3 {
+        font-size: 1rem;
+        flex: 1;
+    }
+    
+    /* Мобильная шапка */
+    .app-header {
+        padding: 0.75rem 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .header-title {
+        font-size: 1.1rem;
+    }
+    
+    .header-actions {
+        gap: 0.5rem;
+    }
+    
+    .current-user-info {
+        padding: 0.4rem 0.5rem;
+    }
+    
+    .current-user-label {
+        display: none;
+    }
+    
+    /* Мобильная авторизация */
+    .auth-container {
+        padding: 1.5rem;
+        margin: 1rem;
+        max-width: calc(100% - 2rem);
+    }
+    
+    .app-title {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    /* Мобильные сообщения */
+    .message {
+        max-width: 80%;
+        padding: 0.6rem 0.8rem;
+        font-size: 0.9rem;
+    }
+    
+    .message-form {
+        padding: 0.75rem;
+        gap: 0.5rem;
+    }
+    
+    .message-form input {
+        padding: 0.6rem 0.75rem;
+        font-size: 0.95rem;
+    }
+    
+    .message-form .btn {
+        padding: 0.6rem 1rem;
+    }
+    
+    /* Скрываем десктопные элементы на мобильном */
+    .desktop-only {
+        display: none !important;
+    }
+}
+
+/* Скрытые по умолчанию элементы */
+.mobile-only {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .mobile-only {
+        display: flex !important;
+    }
+}
+
+/* Адаптивность для очень маленьких экранов */
+@media (max-width: 400px) {
+    .auth-container {
+        padding: 1rem;
+        margin: 0.5rem;
+    }
+    
+    .app-title {
+        font-size: 1.3rem;
+    }
+    
+    .form-group input {
+        padding: 0.6rem 0.75rem;
+    }
+    
+    .btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .user-item {
+        padding: 0.75rem;
+    }
+    
+    .user-avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 0.9rem;
+    }
+    
+    .user-name {
+        font-size: 0.9rem;
+    }
+    
+    .chat-header {
+        padding: 0.6rem 0.75rem;
+    }
+    
+    .messages {
+        padding: 0.75rem;
+    }
+    
+    .message {
+        max-width: 75%;
+        padding: 0.5rem 0.7rem;
+        font-size: 0.85rem;
+    }
+}
+
+/* Адаптивность для landscape на мобильных */
+@media (max-height: 500px) and (max-width: 768px) {
+    .auth-container {
+        padding: 1rem;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .app-title {
+        margin-bottom: 0.75rem;
+        font-size: 1.2rem;
+    }
+    
+    .auth-tabs {
+        margin-bottom: 0.75rem;
+    }
+    
+    .auth-tab {
+        padding: 0.5rem;
+    }
+    
+    .message {
+        max-width: 70%;
+    }
+    
+    .messages {
+        padding: 0.5rem;
+        gap: 0.5rem;
+    }
+    
+    .message-form {
+        padding: 0.5rem;
+    }
+}
+
+/* Плавные переходы для мобильных */
+@media (max-width: 768px) {
+    .users-sidebar,
+    .chat-container {
+        -webkit-transition: transform 0.3s ease, opacity 0.3s ease;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    
+    .user-item,
+    .message,
+    .btn {
+        -webkit-tap-highlight-color: transparent;
     }
 }
 

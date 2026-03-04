@@ -2,7 +2,9 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>WebMessenger</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -54,6 +56,11 @@
         <!-- Основной экран -->
         <div id="main-screen" class="screen hidden">
             <header class="app-header">
+                <button id="back-to-users-btn" class="btn btn-icon mobile-only" title="К списку пользователей">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </button>
                 <h2 class="header-title">WebMessenger</h2>
                 <div class="header-actions">
                     <div class="current-user-info">
@@ -84,6 +91,13 @@
                     
                     <div id="chat-container" class="chat-container hidden">
                         <div class="chat-header">
+                            <button id="show-users-btn" class="btn btn-icon mobile-only" title="К списку пользователей">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                                </svg>
+                            </button>
                             <h3 id="chat-with-user"></h3>
                             <span id="user-status" class="user-status offline">оффлайн</span>
                         </div>
