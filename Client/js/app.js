@@ -266,13 +266,16 @@ WebMessenger.App = (() => {
     function connectWebSocket() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const token = sessionStorage.getItem('authToken');
-        const wsUrl = `${protocol}//${window.location.host}/ws${token ? '?token=' + encodeURIComponent(token) : ''}`;
+        // Токен передаётся в первом сообщении после подключения (безопасно, не в URL)
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
         
         console.log('WebSocket URL:', wsUrl);
         ws = new WebSocket(wsUrl);
         
         ws.onopen = () => {
             console.log('WebSocket connected');
+            // Отправляем токен в первом сообщении для аутентификации
+            ws.send(JSON.stringify({ type: 'auth', token: token }));
             // Уведомляем о онлайн статусе
             ws.send(JSON.stringify({ type: 'online' }));
         };

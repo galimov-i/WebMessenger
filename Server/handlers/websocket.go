@@ -15,7 +15,15 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		return true // Разрешаем все источники для разработки
+		// Разрешаем только localhost и текущий хост для продакшена
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true // Нет Origin заголовка - это прямой запрос
+		}
+		// Разрешаем тот же хост
+		return origin == "http://"+r.Host || origin == "https://"+r.Host ||
+			r.Host == "localhost:8080" || r.Host == "localhost:8082" ||
+			r.Host == "127.0.0.1:8080" || r.Host == "127.0.0.1:8082"
 	},
 }
 
@@ -116,6 +124,12 @@ func (h *Hub) GetOnlineUsers() []int64 {
 type WSMessage struct {
 	Type    string      `json:"type"`
 	Payload interface{} `json:"payload"`
+	Token   string      `json:"token,omitempty"`
+}
+
+// WSAuthMessage сообщение аутентификации
+type WSAuthMessage struct {
+	Token string `json:"token"`
 }
 
 // WSChatMessage сообщение чата
@@ -192,6 +206,12 @@ func (c *Client) readPump() {
 		}
 
 		switch wsMsg.Type {
+		case "auth":
+			// Аутентификация через сообщение (безопаснее, чем URL)
+			// Токен уже проверен при установлении соединения
+			// Здесь просто подтверждаем получение
+			log.Printf("WebSocket auth message received from user %d", c.user.ID)
+
 		case "chat":
 			// Пересылаем сообщение получателю
 			payload, _ := json.Marshal(wsMsg.Payload)

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"messenger/crypto"
@@ -81,7 +82,7 @@ func RequireAuth(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		// Добавляем пользователя в контекст
-		r.Header.Set("X-User-ID", string(rune(user.ID)))
+		r.Header.Set("X-User-ID", strconv.FormatInt(user.ID, 10))
 		next(w, r)
 	}
 }
