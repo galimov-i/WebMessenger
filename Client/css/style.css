@@ -481,6 +481,10 @@ html, body {
     
     .users-sidebar.open {
         transform: translateX(0);
+        z-index: 200;
+        /* Debug border to ensure visibility */
+        border-left: 4px solid #ff0000;
+        box-shadow: 4px 0 15px rgba(0, 0, 0, 0.5);
     }
     
     .users-sidebar.open ~ .chat-area .chat-container {

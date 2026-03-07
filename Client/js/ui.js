@@ -189,10 +189,13 @@ WebMessenger.UI = (() => {
         authScreen.classList.add('hidden');
         mainScreen.classList.remove('hidden');
         // Открываем сайдбар на мобильных устройствах при первом показе
+        console.log('showMainScreen: window.innerWidth =', window.innerWidth);
         if (window.innerWidth <= 768) {
             const sidebar = document.querySelector('.users-sidebar');
+            console.log('sidebar element:', sidebar);
             if (sidebar) {
                 sidebar.classList.add('open');
+                console.log('sidebar open class added');
             }
         }
     }
