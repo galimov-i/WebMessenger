@@ -13,6 +13,8 @@
 - Сервер не видит содержимое сообщений
 - Минимум внешних зависимостей
 - SQLite как встроенная БД
+- Docker контейнеризация для лёгкого развёртывания
+- Аудит безопасности и защита от распространённых уязвимостей
 
 ---
 
@@ -25,7 +27,8 @@ WebMessenger/
 │   ├── handlers/                # HTTP-обработчики
 │   │   ├── auth.go              # Регистрация/логин
 │   │   ├── messages.go          # Сообщения
-│   │   └── websocket.go         # Real-time
+│   │   ├── websocket.go         # Real-time
+│   │   └── health.go            # Health check
 │   ├── models/                  # Структуры данных
 │   │   └── user.go
 │   ├── crypto/                  # Шифрование (серверное)
@@ -45,11 +48,15 @@ WebMessenger/
 │       ├── api.js               # HTTP клиент
 │       └── ui.js                # DOM управление
 │
+├── Dockerfile                   # Docker образ сервера
+├── docker-compose.yml           # Docker Compose для полного стека
 ├── server.sh                    # Скрипт запуска сервера
 ├── client.sh                    # Скрипт запуска клиента
 ├── .gitignore
 ├── README.md
-└── Architecture.md
+├── BUILD.md
+├── Architecture.md
+└── Security-Audit-Report.md     # Отчёт аудита безопасности
 ```
 
 ---
@@ -64,6 +71,7 @@ WebMessenger/
 | WebSocket | `github.com/gorilla/websocket` | Real-time сообщения |
 | Database | `github.com/mattn/go-sqlite3` | SQLite драйвер |
 | Crypto | `golang.org/x/crypto/bcrypt` | Хэширование паролей |
+| Middleware | собственная реализация | CORS, безопасные заголовки, аутентификация |
 
 ### 3.2 Схема базы данных
 
@@ -215,10 +223,13 @@ async function decrypt(encryptedBase64, privateKeyPEM) {
 
 ### 6.3 WebSocket подключение
 
-Токен передаётся через query-параметр:
+Токен передаётся через query-параметр (для аутентификации при установке соединения):
+
 ```
 ws://localhost:8080/ws?token=<session_token>
 ```
+
+Сервер проверяет токен и связывает соединение с пользователем.
 
 ---
 
@@ -235,6 +246,7 @@ ws://localhost:8080/ws?token=<session_token>
 | GET | `/api/messages?with=:id` | Сообщения с пользователем | Да |
 | POST | `/api/messages` | Отправить сообщение | Да |
 | WS | `/ws?token=:token` | WebSocket соединение | Да |
+| GET | `/health` | Health check сервера | Нет |
 
 ### Примеры
 
@@ -265,6 +277,7 @@ curl -X POST http://localhost:8080/api/messages \
 | RAM | 128 MB |
 | Storage | 100 MB для БД |
 | OS | Linux / macOS / Windows |
+| Docker | опционально |
 
 ### Клиент
 
@@ -291,11 +304,24 @@ curl -X POST http://localhost:8080/api/messages \
 # Сервер
 cd Server
 go mod tidy
-go build -o messenger.exe .
-./messenger.exe -port 8080 -db ./messenger.db -static ../Client
+go build -o messenger .
+./messenger -port 8080 -db ./messenger.db -static ../Client
 
 # Клиент открыть в браузере
 http://localhost:8080
+```
+
+### Docker
+
+```bash
+# Сборка образа
+docker build -t webmessenger .
+
+# Запуск
+docker run -p 8080:8080 webmessenger
+
+# Или через docker-compose
+docker-compose up
 ```
 
 ### Параметры сервера
@@ -308,7 +334,26 @@ http://localhost:8080
 
 ---
 
-## 10. Диаграмма архитектуры
+## 10. Безопасность
+
+### Меры защиты
+
+- **Сквозное шифрование** — RSA-OAEP 2048 бит
+- **Хэширование паролей** — bcrypt с cost factor 12
+- **Защита от SQL-инъекций** — параметризованные запросы
+- **Экранирование HTML** — функция `escapeHtml` на клиенте
+- **Безопасные заголовки HTTP** — CSP, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection
+- **CORS** — разрешён любой origin (для разработки)
+- **Валидация сессий** — токены с ограниченным сроком действия (30 дней)
+- **Аутентификация WebSocket** — проверка токена при подключении
+
+### Аудит безопасности
+
+Проведён аудит безопасности, выявлены и классифицированы уязвимости. Подробный отчёт доступен в файле [Security-Audit-Report.md](Security-Audit-Report.md). Рекомендации по улучшению безопасности включены в отчёт.
+
+---
+
+## 11. Диаграмма архитектуры
 
 ```
                     HTTPS / WebSocket
@@ -354,5 +399,5 @@ http://localhost:8080
 
 ---
 
-**Документ обновлён:** 2026-03-03  
-**Версия:** 2.0
+**Документ обновлён:** 2026-03-07  
+**Версия:** 3.0

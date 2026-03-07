@@ -4,6 +4,7 @@
 
 ![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)
 ![License](https://img.shields.io/badge/License-MIT-green)
+![Docker](https://img.shields.io/badge/Docker-✓-2496ED?style=flat&logo=docker)
 
 ## Возможности
 
@@ -12,6 +13,8 @@
 - 🔑 **Клиентская генерация ключей** — RSA ключи создаются в браузере
 - 🗄️ **SQLite база данных** — встроенная БД без внешних зависимостей
 - 🌐 **Браузерный клиент** — чистый HTML/CSS/JS без фреймворков
+- 🐳 **Docker контейнеризация** — готовые образы для быстрого развёртывания
+- 🛡️ **Безопасность** — аудит безопасности, защита от XSS, SQL-инъекций
 
 ## Структура проекта
 
@@ -22,7 +25,8 @@ WebMessenger/
 │   ├── handlers/          # HTTP обработчики
 │   │   ├── auth.go        # Регистрация, вход
 │   │   ├── messages.go    # Сообщения
-│   │   └── websocket.go   # WebSocket
+│   │   ├── websocket.go   # WebSocket
+│   │   └── health.go      # Health check
 │   ├── models/            # Модели данных
 │   ├── crypto/            # Криптография
 │   └── db/                # SQLite
@@ -36,15 +40,20 @@ WebMessenger/
 │       ├── api.js        # HTTP клиент
 │       └── ui.js         # UI компоненты
 │
-├── server.sh             # Скрипт запуска сервера
-├── BUILD.md              # Инструкция по сборке
-└── Architecture.md       # Архитектура системы
+├── Dockerfile            # Docker образ сервера
+├── docker-compose.yml    # Docker Compose для полного стека
+├── server.sh            # Скрипт запуска сервера
+├── client.sh            # Скрипт проверки клиента
+├── BUILD.md             # Инструкция по сборке
+├── Architecture.md      # Архитектура системы
+└── Security-Audit-Report.md # Отчёт аудита безопасности
 ```
 
 ## Требования
 
 ### Сервер
 - **Go 1.21+** — [скачать](https://go.dev/dl/)
+- **Docker** (опционально) — для контейнеризации
 
 ### Клиент
 - Chrome 60+, Firefox 55+, Safari 11+, Edge 79+
@@ -59,7 +68,7 @@ git clone https://github.com/galimov-i/WebMessenger.git
 cd WebMessenger
 ```
 
-### 2. Запуск сервера
+### 2. Запуск сервера (нативный)
 
 ```bash
 cd Server
@@ -68,7 +77,18 @@ go build -o messenger .
 ./messenger -port 8080 -db ./messenger.db -static ../Client
 ```
 
-### 3. Использование
+### 3. Запуск через Docker
+
+```bash
+# Сборка и запуск
+docker build -t webmessenger .
+docker run -p 8080:8080 webmessenger
+
+# Или с помощью docker-compose
+docker-compose up
+```
+
+### 4. Использование
 
 Откройте в браузере: **http://localhost:8080**
 
@@ -124,6 +144,19 @@ go build -o messenger .
 
 # Для автозапуска настройте systemd
 ```
+
+## Безопасность
+
+Приложение прошло аудит безопасности. Основные меры защиты:
+
+- Сквозное шифрование RSA-OAEP 2048 бит
+- Хэширование паролей bcrypt (cost 12)
+- Защита от SQL-инъекций (параметризованные запросы)
+- Экранирование HTML на клиенте
+- Безопасные заголовки HTTP (CSP, X-Frame-Options и др.)
+- Валидация сессий
+
+Подробный отчёт см. в [Security-Audit-Report.md](Security-Audit-Report.md).
 
 ## Зависимости
 

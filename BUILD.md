@@ -5,6 +5,7 @@
 ### Для сервера
 - **Go 1.21+** — скачать с https://go.dev/dl/
 - **SQLite** — встроен в драйвер, дополнительная установка не требуется
+- **Docker** (опционально) — для контейнеризации
 
 ### Для клиента
 - Любой современный браузер с поддержкой Web Crypto API:
@@ -20,17 +21,17 @@
 ### 1. Клонирование репозитория
 
 ```bash
-git clone <репозиторий>
-cd <директория_проекта>
+git clone https://github.com/galimov-i/WebMessenger.git
+cd WebMessenger
 ```
 
-### 2. Запуск сервера
+### 2. Запуск сервера (нативный)
 
 ```bash
 # Сделать скрипт исполняемым
 chmod +x server.sh
 
-# Запуск сервера (или просто ./server.sh)
+# Запуск сервера
 ./server.sh
 ```
 
@@ -51,9 +52,22 @@ DB_PATH=/path/to/database.db ./server.sh
 STATIC_DIR=/path/to/client ./server.sh
 ```
 
-### 3. Запуск клиента
+### 3. Запуск через Docker
 
-Клиент не требует сборки — это статические файлы. 
+```bash
+# Сборка образа
+docker build -t webmessenger .
+
+# Запуск контейнера
+docker run -p 8080:8080 webmessenger
+
+# Или с помощью docker-compose (включает клиентскую часть)
+docker-compose up
+```
+
+### 4. Запуск клиента
+
+Клиент не требует сборки — это статические файлы.
 
 После запуска сервера откройте в браузере: **http://localhost:8080**
 
@@ -74,7 +88,7 @@ go mod tidy
 go build -o messenger .
 
 # Запуск
-./messenger.exe -port 8080 -static ../Client
+./messenger -port 8080 -db ./messenger.db -static ../Client
 ```
 
 ### Проверка работы сервера
@@ -83,7 +97,8 @@ go build -o messenger .
 # Проверка доступности
 curl http://localhost:8080
 
-# Должен вернуть HTML страницу
+# Health check
+curl http://localhost:8080/health
 ```
 
 ---
@@ -110,9 +125,12 @@ messenger/
 │       ├── api.js        # HTTP клиент
 │       ├── ui.js         # Управление UI
 │       └── app.js        # Логика приложения
+├── Dockerfile            # Docker образ сервера
+├── docker-compose.yml    # Docker Compose для полного стека
 ├── server.sh             # Скрипт запуска сервера
 ├── client.sh             # Скрипт проверки клиента
-└── BUILD.md              # Этот файл
+├── BUILD.md              # Этот файл
+└── Security-Audit-Report.md # Отчёт аудита безопасности
 ```
 
 ---
@@ -373,6 +391,56 @@ sudo ufw allow 8080/tcp
 Откройте в браузере:
 - **Без домена:** `http://IP_VPS:8080`
 - **С доменом:** `http://your-domain.com`
+
+---
+
+## Docker развёртывание
+
+### Сборка образа
+
+```bash
+docker build -t webmessenger .
+```
+
+### Запуск контейнера
+
+```bash
+docker run -d \
+  -p 8080:8080 \
+  -v /path/to/data:/app/data \
+  --name messenger \
+  webmessenger
+```
+
+### Docker Compose
+
+Используйте готовый `docker-compose.yml`:
+
+```bash
+docker-compose up -d
+```
+
+### Обновление
+
+```bash
+docker-compose pull
+docker-compose up -d
+```
+
+---
+
+## Безопасность
+
+Приложение включает следующие меры безопасности:
+
+- Сквозное шифрование RSA-OAEP 2048 бит
+- Хэширование паролей bcrypt (cost 12)
+- Защита от SQL-инъекций (параметризованные запросы)
+- Экранирование HTML на клиенте
+- Безопасные заголовки HTTP (CSP, X-Frame-Options, X-Content-Type-Options)
+- Валидация сессий и токенов
+
+Подробный аудит безопасности доступен в файле [Security-Audit-Report.md](Security-Audit-Report.md).
 
 ---
 
