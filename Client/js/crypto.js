@@ -347,10 +347,9 @@ WebMessenger.Crypto = (() => {
             throw new Error('Web Crypto API не поддерживается в этом браузере');
         }
         
-        // Загрузка ключей из sessionStorage (безопаснее, чем localStorage)
-        // Ключи удаляются при закрытии вкладки/браузера
-        const savedPublicKey = sessionStorage.getItem('publicKey');
-        const savedPrivateKey = sessionStorage.getItem('privateKey');
+        // Загрузка ключей из localStorage (сохраняются между сессиями)
+        const savedPublicKey = localStorage.getItem('publicKey');
+        const savedPrivateKey = localStorage.getItem('privateKey');
         
         if (savedPublicKey && savedPrivateKey) {
             try {
@@ -359,27 +358,26 @@ WebMessenger.Crypto = (() => {
                 keyPair = { publicKey, privateKey };
             } catch (e) {
                 console.error('Failed to load keys from storage:', e);
-                sessionStorage.removeItem('publicKey');
-                sessionStorage.removeItem('privateKey');
+                localStorage.removeItem('publicKey');
+                localStorage.removeItem('privateKey');
             }
         }
     }
     
     /**
-     * Сохраняет ключи в sessionStorage (безопаснее, чем localStorage)
-     * Ключи удаляются при закрытии вкладки
+     * Сохраняет ключи в localStorage (сохраняются между сессиями)
      */
     async function saveKeys(publicKeyPEM, privateKeyPEM) {
-        sessionStorage.setItem('publicKey', publicKeyPEM);
-        sessionStorage.setItem('privateKey', privateKeyPEM);
+        localStorage.setItem('publicKey', publicKeyPEM);
+        localStorage.setItem('privateKey', privateKeyPEM);
     }
     
     /**
      * Очищает сохраненные ключи
      */
     function clearKeys() {
-        sessionStorage.removeItem('publicKey');
-        sessionStorage.removeItem('privateKey');
+        localStorage.removeItem('publicKey');
+        localStorage.removeItem('privateKey');
         keyPair = null;
     }
     

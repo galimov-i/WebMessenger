@@ -226,6 +226,11 @@ func GetPublicKey(w http.ResponseWriter, r *http.Request) {
 		if len(keyBytes) > 0 && keyBytes[0] == 0x30 {
 			publicKey = crypto.PublicKeyToPEM(keyBytes)
 			log.Printf("GetPublicKey: converted binary key to PEM for user %d", userID)
+			// Обновляем ключ в БД для будущих запросов
+			if err := db.UpdateUserPublicKey(userID, publicKey); err != nil {
+				log.Printf("GetPublicKey: failed to update user public key in DB: %v", err)
+				// Не прерываем выполнение, т.к. ключ уже сконвертирован
+			}
 		} else {
 			// Не удалось определить формат
 			log.Printf("GetPublicKey: unknown key format for user %d, first byte: %x", userID, keyBytes[0])
