@@ -356,16 +356,21 @@ WebMessenger.UI = (() => {
         
         // Получаем закрытый ключ
         const privateKey = localStorage.getItem('privateKey');
-        
+        // Кэш отправленных сообщений
+        const sentCache = JSON.parse(localStorage.getItem('sentMessageCache') || '{}');
+
         for (const msg of messages) {
             const isSent = msg.sender_id === currentUserId;
             const messageEl = document.createElement('div');
             messageEl.className = `message ${isSent ? 'sent' : 'received'}`;
-            
+
             let content = msg.encrypted_content;
-            
-            // Пробуем расшифровать любое сообщение (включая свои)
-            if (privateKey) {
+
+            // Для отправленных сообщений сначала проверяем кэш
+            if (isSent && sentCache[msg.encrypted_content]) {
+                content = sentCache[msg.encrypted_content];
+            } else if (privateKey) {
+                // Пробуем расшифровать любое сообщение (включая свои)
                 try {
                     content = await WebMessenger.Crypto.decrypt(msg.encrypted_content, privateKey);
                 } catch (e) {

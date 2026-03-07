@@ -15,6 +15,20 @@ WebMessenger.App = (() => {
     let onlineUsers = [];
     
     /**
+     * Кэш отправленных сообщений (encrypted -> plaintext)
+     */
+    function cacheSentMessage(encryptedContent, plaintext) {
+        const cache = JSON.parse(localStorage.getItem('sentMessageCache') || '{}');
+        cache[encryptedContent] = plaintext;
+        localStorage.setItem('sentMessageCache', JSON.stringify(cache));
+    }
+    
+    function getCachedPlaintext(encryptedContent) {
+        const cache = JSON.parse(localStorage.getItem('sentMessageCache') || '{}');
+        return cache[encryptedContent] || null;
+    }
+    
+    /**
      * Инициализация приложения
      */
     async function init() {
@@ -225,6 +239,9 @@ WebMessenger.App = (() => {
             const encrypted = await WebMessenger.Crypto.encrypt(content, response.public_key);
             console.log('Encrypted length:', encrypted.length);
             
+            // Кэшируем отправленное сообщение для последующего отображения
+            cacheSentMessage(encrypted, content);
+            
             // Отправляем на сервер
             console.log('Sending to server...');
             const result = await WebMessenger.API.sendMessage(recipientId, encrypted);
@@ -324,10 +341,17 @@ WebMessenger.App = (() => {
                 if (msg.recipient_id === currentUser.id || msg.sender_id === currentUser.id) {
                     // Пробуем расшифровать сообщение
                     let content = msg.encrypted_content;
-                    // Расшифровываем если:
-                    // 1. Сообщение от другого пользователя (зашифровано моим публичным ключом)
-                    // 2. Сообщение себе (тоже зашифровано моим публичным ключом)
-                    if (privateKey) {
+                    
+                    // Проверяем кэш для отправленных нами сообщений
+                    if (msg.sender_id === currentUser.id) {
+                        const cached = getCachedPlaintext(msg.encrypted_content);
+                        if (cached) {
+                            content = cached;
+                        }
+                    }
+                    
+                    // Если не нашли в кэше, пробуем расшифровать
+                    if (content === msg.encrypted_content && privateKey) {
                         try {
                             content = await WebMessenger.Crypto.decrypt(msg.encrypted_content, privateKey);
                         } catch (e) {
@@ -337,7 +361,7 @@ WebMessenger.App = (() => {
                     }
                     
                     // Если это текущий чат, добавляем сообщение
-                    if (window.WebMessenger.App.currentChatUserId === msg.sender_id || 
+                    if (window.WebMessenger.App.currentChatUserId === msg.sender_id ||
                         window.WebMessenger.App.currentChatUserId === msg.recipient_id) {
                         WebMessenger.UI.addMessage({
                             content: content,
