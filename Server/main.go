@@ -74,6 +74,7 @@ func main() {
 	http.HandleFunc("/api/keys/", apiHandler(handlers.GetPublicKey))
 	http.HandleFunc("/api/users", apiHandler(handlers.GetUsers))
 	http.HandleFunc("/api/me", apiHandler(handlers.GetCurrentUser))
+	http.HandleFunc("/health", apiHandler(handlers.HealthCheck))
 
 	// WebSocket
 	http.HandleFunc("/ws", handlers.HandleWebSocket)

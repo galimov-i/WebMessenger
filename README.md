@@ -109,6 +109,7 @@ go build -o messenger .
 | GET | `/api/keys/:id` | Публичный ключ |
 | GET | `/api/messages?with=:id` | Сообщения |
 | POST | `/api/messages` | Отправить сообщение |
+| GET | `/health` | Health check сервера |
 | WS | `/ws?token=:token` | WebSocket |
 
 ## Запуск на VPS

@@ -483,6 +483,12 @@ html, body {
         transform: translateX(0);
     }
     
+    .users-sidebar.open ~ .chat-area .chat-container {
+        opacity: 0.3;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+    
     .chat-container {
         width: 100%;
         position: absolute;
@@ -490,6 +496,11 @@ html, body {
         top: 0;
         bottom: 0;
         background: var(--bg-color);
+    }
+    
+    .search-box input {
+        font-size: 1rem;
+        padding: 0.75rem 1rem;
     }
     
     .chat-container.active {

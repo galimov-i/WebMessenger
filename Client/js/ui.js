@@ -52,7 +52,9 @@ WebMessenger.UI = (() => {
         if (backToUsersBtn) {
             backToUsersBtn.addEventListener('click', () => {
                 usersSidebar.classList.add('open');
-                chatContainer.classList.remove('active');
+                if (chatContainer) {
+                    chatContainer.classList.remove('active');
+                }
             });
         }
         
@@ -60,7 +62,9 @@ WebMessenger.UI = (() => {
         if (showUsersBtn) {
             showUsersBtn.addEventListener('click', () => {
                 usersSidebar.classList.add('open');
-                chatContainer.classList.remove('active');
+                if (chatContainer) {
+                    chatContainer.classList.remove('active');
+                }
             });
         }
         
@@ -83,7 +87,9 @@ WebMessenger.UI = (() => {
             resizeTimer = setTimeout(() => {
                 if (window.innerWidth > 768) {
                     usersSidebar.classList.remove('open');
-                    chatContainer.classList.add('active');
+                    if (chatContainer) {
+                        chatContainer.classList.add('active');
+                    }
                 }
             }, 150);
         });
