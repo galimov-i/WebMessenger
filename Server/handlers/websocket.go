@@ -83,15 +83,26 @@ func (h *Hub) Run() {
 
 		case message := <-h.broadcast:
 			h.mutex.RLock()
+			var toRemove []int64
 			for _, client := range h.clients {
 				select {
 				case client.send <- message:
 				default:
-					close(client.send)
-					delete(h.clients, client.user.ID)
+					toRemove = append(toRemove, client.user.ID)
 				}
 			}
 			h.mutex.RUnlock()
+			if len(toRemove) > 0 {
+				h.mutex.Lock()
+				for _, id := range toRemove {
+					if client, ok := h.clients[id]; ok {
+						close(client.send)
+						delete(h.clients, id)
+						log.Printf("Client removed due to full send buffer: %d", id)
+					}
+				}
+				h.mutex.Unlock()
+			}
 		}
 	}
 }

@@ -71,6 +71,12 @@ func getMessages(w http.ResponseWriter, r *http.Request, user *models.User) {
 		json.NewEncoder(w).Encode(models.ErrorResponse{Error: "Invalid user ID"})
 		return
 	}
+	if chatWithID <= 0 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(models.ErrorResponse{Error: "Invalid user ID"})
+		return
+	}
 
 	messages, err := db.GetMessages(user.ID, chatWithID)
 	if err != nil {
@@ -173,16 +179,35 @@ func GetPublicKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Получаем ID пользователя из URL
-	userIDStr := r.URL.Path[len("/api/keys/"):]
-	if userIDStr == "" {
+	prefix := "/api/keys/"
+	if !strings.HasPrefix(r.URL.Path, prefix) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(models.ErrorResponse{Error: "Invalid path"})
+		return
+	}
+	// Извлекаем сегмент после префикса, игнорируя возможные дополнительные слеши
+	suffix := strings.TrimPrefix(r.URL.Path, prefix)
+	suffix = strings.Trim(suffix, "/")
+	// Берем первый сегмент до следующего слеша
+	if idx := strings.Index(suffix, "/"); idx != -1 {
+		suffix = suffix[:idx]
+	}
+	if suffix == "" {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(models.ErrorResponse{Error: "User ID required"})
 		return
 	}
 
-	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	userID, err := strconv.ParseInt(suffix, 10, 64)
 	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(models.ErrorResponse{Error: "Invalid user ID"})
+		return
+	}
+	if userID <= 0 {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(models.ErrorResponse{Error: "Invalid user ID"})

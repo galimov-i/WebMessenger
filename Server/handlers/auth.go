@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -122,6 +123,15 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(models.ErrorResponse{Error: "Username must be 3-30 characters"})
+		return
+	}
+
+	// Проверка допустимых символов в имени пользователя
+	matched, _ := regexp.MatchString(`^[a-zA-Z0-9_-]+$`, req.Username)
+	if !matched {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(models.ErrorResponse{Error: "Username can only contain letters, numbers, underscores and hyphens"})
 		return
 	}
 
@@ -277,7 +287,9 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	// Если предоставлен новый публичный ключ, обновляем его
 	if req.PublicKey != "" {
-		db.UpdateUserPublicKey(user.ID, req.PublicKey)
+		if err := db.UpdateUserPublicKey(user.ID, req.PublicKey); err != nil {
+			log.Printf("Failed to update public key for user %d: %v", user.ID, err)
+		}
 	}
 
 	// Получаем PEM из БД
@@ -334,7 +346,11 @@ func GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Получаем публичный ключ из БД
-	publicKeyPEM, _ := db.GetUserPublicKey(user.ID)
+	publicKeyPEM, err := db.GetUserPublicKey(user.ID)
+	if err != nil {
+		log.Printf("Failed to get public key for user %d: %v", user.ID, err)
+		publicKeyPEM = ""
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(models.LoginResponse{

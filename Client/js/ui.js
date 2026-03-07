@@ -251,9 +251,9 @@ WebMessenger.UI = (() => {
             item.dataset.username = user.username.toLowerCase();
             
             const initial = user.username.charAt(0).toUpperCase();
-            
+
             item.innerHTML = `
-                <div class="user-avatar">${initial}</div>
+                <div class="user-avatar">${escapeHtml(initial)}</div>
                 <div class="user-info">
                     <div class="user-name">${escapeHtml(user.username)}</div>
                 </div>
