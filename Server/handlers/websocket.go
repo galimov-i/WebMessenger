@@ -109,14 +109,18 @@ func (h *Hub) Run() {
 
 // SendToUser отправляет сообщение конкретному пользователю
 func (h *Hub) SendToUser(userID int64, message []byte) {
+	log.Printf("SendToUser: attempting to send to user %d", userID)
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 	if client, ok := h.clients[userID]; ok {
 		select {
 		case client.send <- message:
+			log.Printf("SendToUser: message sent to user %d", userID)
 		default:
 			log.Printf("Failed to send message to user %d", userID)
 		}
+	} else {
+		log.Printf("SendToUser: user %d not connected", userID)
 	}
 }
 

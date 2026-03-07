@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"messenger/crypto"
 	"messenger/db"
@@ -154,12 +155,31 @@ func sendMessage(w http.ResponseWriter, r *http.Request, user *models.User) {
 		return
 	}
 
+	// Таймстамп для ответа и WebSocket
+	timestamp := time.Now().UTC().Format("2006-01-02T15:04:05Z")
+
+	// Отправка WebSocket уведомления получателю
+	chatMsg := WSChatMessage{
+		SenderID:         user.ID,
+		RecipientID:      req.RecipientID,
+		EncryptedContent: req.EncryptedContent,
+		Timestamp:        timestamp,
+	}
+	wsMsg := WSMessage{
+		Type:    "chat",
+		Payload: chatMsg,
+	}
+	wsBytes, _ := json.Marshal(wsMsg)
+	globalHub.SendToUser(req.RecipientID, wsBytes)
+
+	// Ответ клиенту
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(models.MessageResponse{
 		ID:               messageID,
 		SenderID:         user.ID,
 		RecipientID:      req.RecipientID,
 		EncryptedContent: req.EncryptedContent,
+		Timestamp:        timestamp,
 	})
 }
 
