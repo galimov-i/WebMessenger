@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  messenger:
+    build: .
+    container_name: messenger
+    ports:
+      - "8080:8080"
+    volumes:
+      - messenger_data:/app/data
+    environment:
+      - DB_PATH=/app/data/messenger.db
+      - STATIC_DIR=./Client
+      - PORT=8080
+    restart: unless-stopped
+
+volumes:
+  messenger_data:
