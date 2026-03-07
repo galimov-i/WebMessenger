@@ -7,15 +7,15 @@
 
 /* Переменные */
 :root {
-    --bg-color: #1a1a2e;
-    --bg-secondary: #16213e;
-    --primary-color: #0f3460;
-    --accent-color: #e94560;
-    --text-color: #eaeaea;
-    --text-muted: #a0a0a0;
-    --border-color: #3a3a5a;
-    --success-color: #4caf50;
-    --error-color: #f44336;
+    --bg-color: #0d1117;
+    --bg-secondary: #161b22;
+    --primary-color: #2d3748;
+    --accent-color: #38b2ac;
+    --text-color: #f0f0f0;
+    --text-muted: #a0aec0;
+    --border-color: #4a5568;
+    --success-color: #48bb78;
+    --error-color: #f56565;
     --shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     --shadow-hover: 0 8px 15px rgba(0, 0, 0, 0.3);
     --radius: 12px;
@@ -130,7 +130,7 @@ html, body {
 .form-group input:focus {
     outline: none;
     border-color: var(--accent-color);
-    box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.2);
+    box-shadow: 0 0 0 3px rgba(56, 178, 172, 0.2);
 }
 
 /* Кнопки */
@@ -151,7 +151,7 @@ html, body {
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(233, 69, 96, 0.4);
+    box-shadow: 0 5px 15px rgba(56, 178, 172, 0.4);
 }
 
 .btn-small {
@@ -167,7 +167,7 @@ html, body {
 
 /* Сообщения об ошибках */
 .error-message {
-    background: rgba(244, 67, 54, 0.1);
+    background: rgba(245, 101, 101, 0.1);
     border: 1px solid var(--error-color);
     border-radius: var(--radius-small);
     padding: 0.75rem;
@@ -298,7 +298,7 @@ html, body {
 }
 
 .user-item.active {
-    background: rgba(233, 69, 96, 0.1);
+    background: rgba(56, 178, 172, 0.1);
     border-left: 3px solid var(--accent-color);
 }
 
