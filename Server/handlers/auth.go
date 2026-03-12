@@ -39,6 +39,36 @@ func checkPassword(password, hash string) bool {
 	return err == nil
 }
 
+// isPasswordStrong проверяет сложность пароля
+func isPasswordStrong(password string) (bool, string) {
+	if len(password) < 8 {
+		return false, "Пароль должен быть не менее 8 символов"
+	}
+	hasLower := false
+	hasUpper := false
+	hasDigit := false
+	for _, ch := range password {
+		if ch >= 'a' && ch <= 'z' {
+			hasLower = true
+		} else if ch >= 'A' && ch <= 'Z' {
+			hasUpper = true
+		} else if ch >= '0' && ch <= '9' {
+			hasDigit = true
+		}
+	}
+	// Требуем хотя бы один символ каждого типа
+	if !hasLower {
+		return false, "Пароль должен содержать хотя бы одну строчную букву (a-z)"
+	}
+	if !hasUpper {
+		return false, "Пароль должен содержать хотя бы одну заглавную букву (A-Z)"
+	}
+	if !hasDigit {
+		return false, "Пароль должен содержать хотя бы одну цифру (0-9)"
+	}
+	return true, ""
+}
+
 // getSessionToken извлекает токен из заголовка Authorization
 func getSessionToken(r *http.Request) string {
 	authHeader := r.Header.Get("Authorization")
@@ -135,11 +165,11 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Проверка длины пароля
-	if len(req.Password) < 4 {
+	// Проверка сложности пароля
+	if ok, msg := isPasswordStrong(req.Password); !ok {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(models.ErrorResponse{Error: "Password must be at least 4 characters"})
+		json.NewEncoder(w).Encode(models.ErrorResponse{Error: msg})
 		return
 	}
 

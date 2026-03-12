@@ -107,6 +107,81 @@ WebMessenger.App = (() => {
         
         // Форма регистрации
         const registerForm = document.getElementById('register-form');
+        const passwordInput = document.getElementById('register-password');
+        const passwordConfirmInput = document.getElementById('register-password-confirm');
+        
+        // Инициализация индикатора сложности пароля
+        function updatePasswordStrength() {
+            const password = passwordInput.value;
+            if (!password) {
+                // Сброс индикатора
+                document.getElementById('password-strength-label').textContent = 'не оценено';
+                document.getElementById('password-strength-bar').style.width = '0%';
+                document.getElementById('password-crack-time').textContent = 'неизвестно';
+                document.getElementById('password-recommendations').innerHTML =
+                    '<li>Введите пароль для оценки</li>';
+                return;
+            }
+            
+            const evaluation = WebMessenger.PasswordStrength.evaluate(password);
+            const label = evaluation.label;
+            const score = evaluation.score;
+            const crackTime = evaluation.crackTime;
+            const recommendations = WebMessenger.PasswordStrength.getRecommendations(evaluation);
+            
+            // Обновление метки
+            document.getElementById('password-strength-label').textContent = label;
+            // Обновление полосы
+            const bar = document.getElementById('password-strength-bar');
+            bar.style.width = (score * 25) + '%'; // 0-4 -> 0-100%
+            
+            // Обновление класса для цвета
+            const container = document.querySelector('.password-strength-container');
+            container.className = 'password-strength-container password-strength-' + score;
+            
+            // Время взлома
+            document.getElementById('password-crack-time').textContent = crackTime;
+            
+            // Рекомендации
+            const recList = document.getElementById('password-recommendations');
+            recList.innerHTML = '';
+            recommendations.forEach(rec => {
+                const li = document.createElement('li');
+                li.textContent = rec;
+                recList.appendChild(li);
+            });
+        }
+        
+        // Обработчики ввода пароля
+        passwordInput.addEventListener('input', updatePasswordStrength);
+        passwordConfirmInput.addEventListener('input', updatePasswordStrength);
+        
+        // Кнопка генерации пароля
+        const generateBtn = document.getElementById('generate-password-btn');
+        const generatedContainer = document.querySelector('.generated-password-container');
+        const generatedPasswordInput = document.getElementById('generated-password');
+        const copyBtn = document.getElementById('copy-password-btn');
+        
+        if (generateBtn) {
+            generateBtn.addEventListener('click', () => {
+                const newPassword = WebMessenger.PasswordStrength.generatePassword(12);
+                generatedPasswordInput.value = newPassword;
+                generatedContainer.classList.remove('hidden');
+                // Можно автоматически подставить в поле пароля
+                // passwordInput.value = newPassword;
+                // updatePasswordStrength();
+            });
+        }
+        
+        if (copyBtn) {
+            copyBtn.addEventListener('click', () => {
+                generatedPasswordInput.select();
+                document.execCommand('copy');
+                // Уведомление (можно добавить позже)
+                console.log('Пароль скопирован');
+            });
+        }
+        
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('register-username').value.trim();
@@ -121,6 +196,13 @@ WebMessenger.App = (() => {
             
             if (password.length < 4) {
                 WebMessenger.UI.showError('Пароль должен быть не менее 4 символов');
+                return;
+            }
+            
+            // Проверка сложности пароля
+            const evaluation = WebMessenger.PasswordStrength.evaluate(password);
+            if (evaluation.score < 2) { // Слабый или очень слабый
+                WebMessenger.UI.showError('Пароль слишком слабый. Увеличьте сложность пароля.');
                 return;
             }
             

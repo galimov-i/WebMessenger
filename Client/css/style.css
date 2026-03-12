@@ -950,3 +950,102 @@ html, body {
     width: 20px;
     height: 20px;
 }
+
+/* Password strength indicator */
+.password-strength-container {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-small);
+}
+
+.password-strength-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.password-strength-label {
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-small);
+    background: var(--primary-color);
+    color: white;
+}
+
+.password-strength-meter {
+    height: 8px;
+    background: var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.password-strength-bar {
+    height: 100%;
+    width: 0%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+/* Strength colors */
+.password-strength-0 .password-strength-bar { background: var(--error-color); }
+.password-strength-1 .password-strength-bar { background: #ff6b6b; }
+.password-strength-2 .password-strength-bar { background: #ffa726; }
+.password-strength-3 .password-strength-bar { background: #42a5f5; }
+.password-strength-4 .password-strength-bar { background: var(--success-color); }
+
+.password-strength-details {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
+.password-strength-details div {
+    margin-bottom: 0.5rem;
+}
+
+.password-recommendations {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 0.5rem;
+}
+
+.password-recommendations li {
+    padding: 0.25rem 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.password-recommendations li::before {
+    content: "• ";
+    color: var(--accent-color);
+}
+
+.password-generator {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.generated-password-container {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.generated-password-container input {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-small);
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: monospace;
+    font-size: 0.9rem;
+}

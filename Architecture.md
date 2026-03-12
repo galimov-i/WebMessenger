@@ -122,6 +122,7 @@ Client/js/
 ├── app.js      # Инициализация, WebSocket, отправка сообщений
 ├── api.js      # HTTP клиент (fetch)
 ├── crypto.js   # Web Crypto API (RSA-OAEP, генерация ключей)
+├── password-strength.js # Оценка сложности пароля
 └── ui.js       # DOM манипуляции
 ```
 
@@ -346,6 +347,7 @@ docker-compose up
 
 - **Сквозное шифрование** — RSA-OAEP 2048 бит
 - **Хэширование паролей** — bcrypt с cost factor 12
+- **Валидация сложности паролей** — оценка сложности пароля при регистрации, блокировка слабых паролей, рекомендации по генерации
 - **Защита от SQL-инъекций** — параметризованные запросы
 - **Экранирование HTML** — функция `escapeHtml` на клиенте
 - **Безопасные заголовки HTTP** — CSP, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection
