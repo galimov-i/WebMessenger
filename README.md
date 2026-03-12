@@ -26,7 +26,8 @@ WebMessenger/
 │   │   ├── auth.go        # Регистрация, вход
 │   │   ├── messages.go    # Сообщения
 │   │   ├── websocket.go   # WebSocket
-│   │   └── health.go      # Health check
+│   │   ├── health.go      # Health check
+│   │   └── health_test.go # Тесты health
 │   ├── models/            # Модели данных
 │   ├── crypto/            # Криптография
 │   └── db/                # SQLite
@@ -38,15 +39,20 @@ WebMessenger/
 │       ├── app.js        # Логика приложения
 │       ├── crypto.js     # Web Crypto API
 │       ├── api.js        # HTTP клиент
-│       └── ui.js         # UI компоненты
+│       ├── ui.js         # UI компоненты
+│       ├── api.test.skip.js # Тесты API (пропущенные)
+│       ├── smoke.test.js # Дымовые тесты
+│       └── jest.setup.js # Настройка Jest
 │
 ├── Dockerfile            # Docker образ сервера
 ├── docker-compose.yml    # Docker Compose для полного стека
 ├── server.sh            # Скрипт запуска сервера
 ├── client.sh            # Скрипт проверки клиента
+├── test.sh              # Скрипт запуска тестов
 ├── BUILD.md             # Инструкция по сборке
 ├── Architecture.md      # Архитектура системы
-└── Security-Audit-Report.md # Отчёт аудита безопасности
+├── Security-Audit-Report.md # Отчёт аудита безопасности
+└── test_architecture.md # Архитектура тестирования
 ```
 
 ## Требования
@@ -166,8 +172,9 @@ go build -o messenger .
 - `golang.org/x/crypto` — bcrypt
 
 ### Клиент
-- Без внешних зависимостей
+- Без внешних зависимостей (продакшен)
 - Web Crypto API
+- **Тестирование:** Jest, jsdom (dev dependencies)
 
 ## Лицензия
 

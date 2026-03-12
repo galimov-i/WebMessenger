@@ -112,7 +112,8 @@ messenger/
 │   ├── handlers/          # HTTP обработчики
 │   │   ├── auth.go        # Регистрация, вход, выход
 │   │   ├── messages.go    # Сообщения
-│   │   └── websocket.go   # WebSocket
+│   │   ├── websocket.go   # WebSocket
+│   │   └── health_test.go # Тесты health
 │   ├── models/            # Модели данных
 │   ├── crypto/            # Криптография
 │   └── db/                # SQLite база данных
@@ -124,13 +125,18 @@ messenger/
 │       ├── crypto.js     # Web Crypto API
 │       ├── api.js        # HTTP клиент
 │       ├── ui.js         # Управление UI
-│       └── app.js        # Логика приложения
+│       ├── app.js        # Логика приложения
+│       ├── api.test.skip.js # Тесты API (пропущенные)
+│       ├── smoke.test.js # Дымовые тесты
+│       └── jest.setup.js # Настройка Jest
 ├── Dockerfile            # Docker образ сервера
 ├── docker-compose.yml    # Docker Compose для полного стека
 ├── server.sh             # Скрипт запуска сервера
 ├── client.sh             # Скрипт проверки клиента
+├── test.sh               # Скрипт запуска тестов
 ├── BUILD.md              # Этот файл
-└── Security-Audit-Report.md # Отчёт аудита безопасности
+├── Security-Audit-Report.md # Отчёт аудита безопасности
+└── test_architecture.md  # Архитектура тестирования
 ```
 
 ---

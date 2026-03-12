@@ -28,7 +28,8 @@ WebMessenger/
 │   │   ├── auth.go              # Регистрация/логин
 │   │   ├── messages.go          # Сообщения
 │   │   ├── websocket.go         # Real-time
-│   │   └── health.go            # Health check
+│   │   ├── health.go            # Health check
+│   │   └── health_test.go       # Тесты health
 │   ├── models/                  # Структуры данных
 │   │   └── user.go
 │   ├── crypto/                  # Шифрование (серверное)
@@ -46,17 +47,22 @@ WebMessenger/
 │       ├── app.js               # Главный модуль
 │       ├── crypto.js            # Web Crypto API
 │       ├── api.js               # HTTP клиент
-│       └── ui.js                # DOM управление
+│       ├── ui.js                # DOM управление
+│       ├── api.test.skip.js     # Тесты API (пропущенные)
+│       ├── smoke.test.js        # Дымовые тесты
+│       └── jest.setup.js        # Настройка Jest
 │
 ├── Dockerfile                   # Docker образ сервера
 ├── docker-compose.yml           # Docker Compose для полного стека
 ├── server.sh                    # Скрипт запуска сервера
 ├── client.sh                    # Скрипт запуска клиента
+├── test.sh                      # Скрипт запуска тестов
 ├── .gitignore
 ├── README.md
 ├── BUILD.md
 ├── Architecture.md
-└── Security-Audit-Report.md     # Отчёт аудита безопасности
+├── Security-Audit-Report.md     # Отчёт аудита безопасности
+└── test_architecture.md         # Архитектура тестирования
 ```
 
 ---
@@ -399,5 +405,5 @@ docker-compose up
 
 ---
 
-**Документ обновлён:** 2026-03-07  
+**Документ обновлён:** 2026-03-12
 **Версия:** 3.0
