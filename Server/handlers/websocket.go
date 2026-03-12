@@ -155,6 +155,13 @@ type WSChatMessage struct {
 	Timestamp        string `json:"timestamp"`
 }
 
+// WSCallMessage сообщение звонка
+type WSCallMessage struct {
+	TargetUserID int64       `json:"target_user_id"`
+	SDP          interface{} `json:"sdp,omitempty"`
+	Candidate    interface{} `json:"candidate,omitempty"`
+}
+
 // HandleWebSocket обработчик WebSocket соединения
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	// Пробуем получить токен из query-параметра или из заголовка
@@ -271,6 +278,23 @@ func (c *Client) readPump() {
 			}
 			responseBytes, _ := json.Marshal(response)
 			c.send <- responseBytes
+
+		case "call_offer", "call_answer", "call_candidate", "call_end":
+			// Пересылаем сообщение звонка целевому пользователю
+			payload, _ := json.Marshal(wsMsg.Payload)
+			var callMsg WSCallMessage
+			if err := json.Unmarshal(payload, &callMsg); err != nil {
+				log.Printf("Failed to parse call message: %v", err)
+				continue
+			}
+			// Проверяем, что целевой пользователь существует и онлайн
+			if callMsg.TargetUserID == 0 {
+				log.Printf("Invalid target user ID in call message from user %d", c.user.ID)
+				continue
+			}
+			// Отправляем сообщение целевому пользователю
+			c.hub.SendToUser(callMsg.TargetUserID, message)
+			log.Printf("Call message %s forwarded from user %d to user %d", wsMsg.Type, c.user.ID, callMsg.TargetUserID)
 		}
 	}
 }

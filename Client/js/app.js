@@ -291,6 +291,10 @@ WebMessenger.App = (() => {
         
         ws.onopen = () => {
             console.log('WebSocket connected');
+            // Инициализация CallManager с WebSocket
+            if (WebMessenger.Call && typeof WebMessenger.Call.init === 'function') {
+                WebMessenger.Call.init(ws);
+            }
             // Отправляем токен в первом сообщении для аутентификации (дублирование для совместимости)
             ws.send(JSON.stringify({ type: 'auth', token: token }));
             // Уведомляем о онлайн статусе
@@ -377,6 +381,16 @@ WebMessenger.App = (() => {
                     // Показать индикатор
                 }
                 break;
+
+            case 'call_offer':
+            case 'call_answer':
+            case 'call_candidate':
+            case 'call_end':
+                // Передать сообщение CallManager
+                if (WebMessenger.Call && typeof WebMessenger.Call.handleCallMessage === 'function') {
+                    WebMessenger.Call.handleCallMessage(data);
+                }
+                break;
         }
     }
     
@@ -412,7 +426,8 @@ WebMessenger.App = (() => {
         sendMessage,
         loadMessages,
         currentChatUserId: null,
-        onlineUsers: []
+        onlineUsers: [],
+        users: users
     };
     
     // Запуск при загрузке

@@ -12,6 +12,9 @@ WebMessenger.UI = (() => {
     let authScreen, mainScreen, loginForm, registerForm, authTabs, authError;
     let usersList, chatContainer, chatPlaceholder, messagesContainer, messageInput, chatWithUser;
     let currentUser, currentChatUser;
+    // Элементы звонка
+    let incomingCallModal, incomingCallName, acceptCallBtn, rejectCallBtn;
+    let activeCallScreen, activeCallPeerName, activeCallStatus, muteCallBtn, hangupCallBtn, speakerCallBtn;
     
     /**
      * Инициализация UI элементов
@@ -32,10 +35,23 @@ WebMessenger.UI = (() => {
         chatWithUser = document.getElementById('chat-with-user');
         currentUser = document.getElementById('current-user');
         
+        // Элементы звонка
+        incomingCallModal = document.getElementById('incoming-call-modal');
+        incomingCallName = document.getElementById('incoming-caller-name');
+        acceptCallBtn = document.getElementById('accept-call-btn');
+        rejectCallBtn = document.getElementById('reject-call-btn');
+        activeCallScreen = document.getElementById('active-call-screen');
+        activeCallPeerName = document.getElementById('call-peer-name');
+        activeCallStatus = document.getElementById('call-status');
+        muteCallBtn = document.getElementById('mute-call-btn');
+        hangupCallBtn = document.getElementById('hangup-call-btn');
+        speakerCallBtn = document.getElementById('speaker-call-btn');
+        
         // Настройка обработчиков
         setupAuthTabs();
         setupMessageForm();
         setupMobileNav();
+        setupCallHandlers();
     }
     
     /**
@@ -101,14 +117,14 @@ WebMessenger.UI = (() => {
         document.addEventListener('touchstart', (e) => {
             touchStartX = e.changedTouches[0].screenX;
         }, { passive: true });
-        
+
         document.addEventListener('touchend', (e) => {
             if (window.innerWidth > 768) return;
             
             touchEndX = e.changedTouches[0].screenX;
             handleSwipe();
         }, { passive: true });
-        
+
         function handleSwipe() {
             const swipeThreshold = 50;
             const diff = touchStartX - touchEndX;
@@ -122,6 +138,112 @@ WebMessenger.UI = (() => {
             if (diff > swipeThreshold && currentChatUser) {
                 usersSidebar.classList.remove('open');
             }
+        }
+    }
+
+    /**
+     * Настройка обработчиков звонка
+     */
+    function setupCallHandlers() {
+        if (!acceptCallBtn || !rejectCallBtn || !hangupCallBtn) return;
+        
+        acceptCallBtn.addEventListener('click', () => {
+            const callerId = parseInt(incomingCallModal.dataset.callerId);
+            const offer = JSON.parse(incomingCallModal.dataset.offer || '{}');
+            if (callerId && offer) {
+                if (WebMessenger.Call && WebMessenger.Call.acceptCall) {
+                    WebMessenger.Call.acceptCall(callerId, offer);
+                }
+                hideIncomingCallModal();
+            }
+        });
+        
+        rejectCallBtn.addEventListener('click', () => {
+            const callerId = parseInt(incomingCallModal.dataset.callerId);
+            if (callerId && WebMessenger.Call && WebMessenger.Call.rejectCall) {
+                WebMessenger.Call.rejectCall(callerId);
+            }
+            hideIncomingCallModal();
+        });
+        
+        hangupCallBtn.addEventListener('click', () => {
+            if (WebMessenger.Call && WebMessenger.Call.endCall) {
+                WebMessenger.Call.endCall();
+            }
+        });
+        
+        muteCallBtn.addEventListener('click', () => {
+            // TODO: реализовать отключение микрофона
+            console.log('Mute toggle not implemented');
+        });
+        
+        speakerCallBtn.addEventListener('click', () => {
+            // TODO: переключение динамика
+            console.log('Speaker toggle not implemented');
+        });
+    }
+
+    /**
+     * Показать модальное окно входящего звонка
+     * @param {number} callerId - ID звонящего
+     * @param {string} callerName - Имя звонящего
+     * @param {object} offer - WebRTC offer
+     */
+    function showIncomingCallModal(callerId, callerName, offer) {
+        if (!incomingCallModal) return;
+        incomingCallModal.dataset.callerId = callerId;
+        incomingCallModal.dataset.offer = JSON.stringify(offer);
+        incomingCallName.textContent = callerName;
+        incomingCallModal.classList.add('visible');
+    }
+
+    /**
+     * Скрыть модальное окно входящего звонка
+     */
+    function hideIncomingCallModal() {
+        if (!incomingCallModal) return;
+        incomingCallModal.classList.remove('visible');
+        delete incomingCallModal.dataset.callerId;
+        delete incomingCallModal.dataset.offer;
+    }
+
+    /**
+     * Показать экран активного звонка
+     * @param {number} peerId - ID собеседника
+     * @param {string} peerName - Имя собеседника
+     * @param {boolean} isOutgoing - Исходящий ли звонок
+     */
+    function showActiveCallScreen(peerId, peerName, isOutgoing) {
+        if (!activeCallScreen) return;
+        activeCallScreen.dataset.peerId = peerId;
+        activeCallScreen.dataset.peerName = peerName;
+        activeCallPeerName.textContent = peerName;
+        activeCallStatus.textContent = isOutgoing ? 'Звонок...' : 'В разговоре';
+        activeCallScreen.classList.add('visible');
+    }
+
+    /**
+     * Скрыть экран активного звонка
+     */
+    function hideActiveCallScreen() {
+        if (!activeCallScreen) return;
+        activeCallScreen.classList.remove('visible');
+        delete activeCallScreen.dataset.peerId;
+        delete activeCallScreen.dataset.peerName;
+    }
+
+    /**
+     * Обновить состояние звонка на экране
+     * @param {string} status - Текст статуса
+     * @param {boolean} isConnected - Флаг подключения
+     */
+    function updateCallState(status, isConnected) {
+        if (!activeCallScreen || !activeCallStatus) return;
+        activeCallStatus.textContent = status;
+        if (isConnected) {
+            activeCallStatus.classList.add('connected');
+        } else {
+            activeCallStatus.classList.remove('connected');
         }
     }
     
@@ -267,14 +389,37 @@ WebMessenger.UI = (() => {
                 <div class="user-info">
                     <div class="user-name">${escapeHtml(user.username)}</div>
                 </div>
+                <div class="user-actions">
+                    <button class="user-call-btn" title="Позвонить" data-user-id="${user.id}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                        </svg>
+                    </button>
+                </div>
                 <div class="user-status-indicator ${isOnline ? 'online' : ''}"></div>
             `;
             
-            item.addEventListener('click', () => {
+            item.addEventListener('click', (e) => {
+                // Если клик по кнопке звонка, не выбираем пользователя
+                if (e.target.closest('.user-call-btn')) {
+                    e.stopPropagation();
+                    return;
+                }
                 selectUser(user);
             });
             
             usersList.appendChild(item);
+            
+            // Обработчик кнопки звонка
+            const callBtn = item.querySelector('.user-call-btn');
+            if (callBtn) {
+                callBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (WebMessenger.Call && WebMessenger.Call.startCall) {
+                        WebMessenger.Call.startCall(user.id, user.username);
+                    }
+                });
+            }
         });
     }
     
@@ -459,7 +604,13 @@ WebMessenger.UI = (() => {
         renderMessages,
         addMessage,
         clearChat,
-        updateUserStatus
+        updateUserStatus,
+        // Call UI functions
+        showIncomingCallModal,
+        hideIncomingCallModal,
+        showActiveCallScreen,
+        hideActiveCallScreen,
+        updateCallState
     };
 })();
 
